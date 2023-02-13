@@ -1,12 +1,13 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.config import settings
 from app.routers import user, auth
-
+from .settings import settings
+from loguru import logger
+from .database import get_db
 app = FastAPI()
 
 origins = [
-    settings.CLIENT_ORIGIN,
+    settings.cors_origins,
 ]
 
 app.add_middleware(
