@@ -15,6 +15,12 @@ class Settings(BaseSettings):
     title: str = "Evento"
     version: str = "0.1.0"
 
+    JWT_PUBLIC_KEY: str
+    JWT_PRIVATE_KEY: str
+    REFRESH_TOKEN_EXPIRES_IN: int
+    ACCESS_TOKEN_EXPIRES_IN: int
+    JWT_ALGORITHM: str
+
     DATABASE_PORT: int
     POSTGRES_PASSWORD: str
     POSTGRES_USER: str

@@ -1,9 +1,10 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import user, auth
+from evento.routers import user, auth
 from .settings import settings
 from loguru import logger
 from .database import get_db
+
 app = FastAPI()
 
 origins = [
@@ -19,10 +20,10 @@ app.add_middleware(
 )
 
 
-app.include_router(auth.router, tags=['Auth'], prefix='/api/auth')
-app.include_router(user.router, tags=['Users'], prefix='/api/users')
+app.include_router(auth.router, tags=["Auth"], prefix="/api/auth")
+app.include_router(user.router, tags=["Users"], prefix="/api/users")
 
 
-@app.get('/api/healthchecker')
+@app.get("/api/healthchecker")
 def root():
-    return {'message': 'Hello World'}
+    return {"message": "Hello World"}
