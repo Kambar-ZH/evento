@@ -21,26 +21,8 @@ class Settings(BaseSettings):
     postgres_db: str
     database_url: PostgresDsn
 
-    blockchain_url: str
-    lottery_contract_address: str
-    betting_contract_address: str
-    lottery_creation_block: int
-
-    aws_access_key_id: str
-    aws_secret_access_key: str
-    aws_bucket_name: str
-
     logging_level: int = logging.INFO
     loggers: Tuple[str, str] = ("uvicorn.asgi", "uvicorn.access")
-
-    betting_pg_ip: str
-    betting_pg_password: str
-    betting_pg_user: str
-    betting_pg_db: str
-    betting_database_url: PostgresDsn
-
-    crypto_hunt_pg_ip: str
-    crypto_hunt_database_url: str
 
     cors_origins: List[str]
 
