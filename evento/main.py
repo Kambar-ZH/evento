@@ -1,10 +1,13 @@
 from fastapi import FastAPI
+from .settings import settings
+from loguru import logger
 
 app = FastAPI()
 
 
 @app.get("/")
 def read_root():
+    logger.info(settings.docs_url)
     return {"Hello": "World"}
 
 
