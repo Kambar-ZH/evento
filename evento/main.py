@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from .settings import settings
 from loguru import logger
+from .database import get_db
 
 app = FastAPI()
 

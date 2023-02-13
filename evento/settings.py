@@ -15,10 +15,12 @@ class Settings(BaseSettings):
     title: str = "Evento"
     version: str = "0.1.0"
 
-    # postgres_password: str
-    # postgres_user: str
-    # postgres_db: str
-    # database_url: PostgresDsn
+    DATABASE_PORT: int
+    POSTGRES_PASSWORD: str
+    POSTGRES_USER: str
+    POSTGRES_DB: str
+    POSTGRES_HOST: str
+    POSTGRES_HOSTNAME: str
 
     logging_level: int = logging.INFO
     loggers: Tuple[str, str] = ("uvicorn.asgi", "uvicorn.access")
