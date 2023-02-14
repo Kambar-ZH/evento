@@ -21,6 +21,8 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRES_IN: int
     JWT_ALGORITHM: str
 
+    OTP_API_KEY: str
+
     DATABASE_PORT: int
     POSTGRES_PASSWORD: str
     POSTGRES_USER: str

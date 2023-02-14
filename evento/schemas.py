@@ -12,15 +12,29 @@ class UserBaseSchema(BaseModel):
         orm_mode = True
 
 
-class CreateUserSchema(UserBaseSchema):
+class RegisterUserSchema(BaseModel):
+    phone_number: str  # +77477542002
     password: constr(min_length=8)
-    passwordConfirm: str
-    role: str = 'user'
-    verified: bool = False
+    role: str = "user"
+
+
+class RegisterUserResponseSchema(BaseModel):
+    phone_number: str
+    id: uuid.UUID
+    created_at: datetime
+
+
+class SendOTPSchema(BaseModel):
+    phone_number: str
+
+
+class VerifyOTPSchema(BaseModel):
+    phone_number: str
+    otp: str
 
 
 class LoginUserSchema(BaseModel):
-    email: EmailStr
+    phone_number: str
     password: constr(min_length=8)
 
 

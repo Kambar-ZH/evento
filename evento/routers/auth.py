@@ -1,6 +1,5 @@
 from datetime import timedelta
 from fastapi import APIRouter, Request, Response, status, Depends, HTTPException
-from pydantic import EmailStr
 
 from evento import oauth2
 from .. import schemas, models, utils
@@ -8,6 +7,7 @@ from sqlalchemy.orm import Session
 from evento.database import get_db
 from evento.oauth2 import AuthJWT
 from evento.settings import settings
+from loguru import logger
 
 
 router = APIRouter()
@@ -18,35 +18,105 @@ REFRESH_TOKEN_EXPIRES_IN = settings.REFRESH_TOKEN_EXPIRES_IN
 @router.post(
     "/register",
     status_code=status.HTTP_201_CREATED,
-    response_model=schemas.UserResponse,
+    response_model=schemas.RegisterUserResponseSchema,
 )
-async def create_user(payload: schemas.CreateUserSchema, db: Session = Depends(get_db)):
-    # Check if user already exist
-    user = (
-        db.query(models.User)
-        .filter(models.User.email == EmailStr(payload.email.lower()))
-        .first()
-    )
-    if user:
-        raise HTTPException(
-            status_code=status.HTTP_409_CONFLICT, detail="Account already exist"
-        )
-    # Compare password and passwordConfirm
-    if payload.password != payload.passwordConfirm:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, detail="Passwords do not match"
-        )
+async def create_user(
+    payload: schemas.RegisterUserSchema, db: Session = Depends(get_db)
+):
     #  Hash the password
     payload.password = utils.hash_password(payload.password)
-    del payload.passwordConfirm
-    payload.role = "user"
-    payload.verified = True
-    payload.email = EmailStr(payload.email.lower())
     new_user = models.User(**payload.dict())
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
-    return new_user
+    return schemas.RegisterUserResponseSchema(
+        created_at=new_user.created_at,
+        phone_number=new_user.phone_number,
+        id=new_user.id,
+    )
+
+
+@router.post(
+    "/send-otp",
+    status_code=status.HTTP_201_CREATED,
+)
+async def send_otp(payload: schemas.SendOTPSchema, db: Session = Depends(get_db)):
+    user = (
+        db.query(models.User)
+        .filter(models.User.phone_number == payload.phone_number)
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect Phone number or Password",
+        )
+
+    if user.verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Already verified",
+        )
+
+    from pyotp import random_base32
+
+    otp = random_base32(length=32)[:6]
+
+    db.query(models.User).filter(
+        models.User.phone_number == payload.phone_number
+    ).update({models.User.otp: otp})
+    db.commit()
+
+    logger.info(otp)
+
+    from evento.services.otp import send_otp
+
+    response_status_code = send_otp(otp, user.phone_number)
+    if response_status_code != 0:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="OTP is DEAD",
+        )
+
+    return {"status": "sucess"}
+
+
+@router.post(
+    "/verify-otp",
+    status_code=status.HTTP_201_CREATED,
+)
+async def verify_otp(payload: schemas.VerifyOTPSchema, db: Session = Depends(get_db)):
+    user = (
+        db.query(models.User)
+        .filter(models.User.phone_number == payload.phone_number)
+        .first()
+    )
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Incorrect Phone number or Password",
+        )
+
+    if user.verified:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Already verified",
+        )
+
+    if user.otp != payload.otp:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="OTP is incorrect",
+        )
+
+    db.query(models.User).filter(
+        models.User.phone_number == payload.phone_number
+    ).update({models.User.verified: True})
+    db.commit()
+
+    return {"status": "success"}
 
 
 @router.post("/login")
@@ -59,27 +129,28 @@ def login(
     # Check if the user exist
     user = (
         db.query(models.User)
-        .filter(models.User.email == EmailStr(payload.email.lower()))
+        .filter(models.User.phone_number == payload.phone_number)
         .first()
     )
+
     if not user:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect Email or Password",
+            detail="Incorrect Phone number or Password",
         )
 
     # Check if user verified his email
     if not user.verified:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Please verify your email address",
+            detail="Please verify your phone number",
         )
 
     # Check if the password is valid
     if not utils.verify_password(payload.password, user.password):
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Incorrect Email or Password",
+            detail="Incorrect Phone number or Password",
         )
 
     # Create access token
@@ -128,7 +199,7 @@ def login(
     )
 
     # Send both access
-    return {"status": "success", "access_token": access_token}
+    return {"status": "success"}
 
 
 @router.get("/refresh")
@@ -189,7 +260,7 @@ def refresh_token(
         False,
         "lax",
     )
-    return {"access_token": access_token}
+    return {"status": "success"}
 
 
 @router.get("/logout", status_code=status.HTTP_200_OK)

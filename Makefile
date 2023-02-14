@@ -8,4 +8,4 @@ migration-run:
 	alembic upgrade head
 
 enter-db:
-	
+	docker exec -it postgres psql -U postgres fastapi
