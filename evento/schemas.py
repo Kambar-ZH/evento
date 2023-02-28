@@ -1,6 +1,7 @@
 from datetime import datetime
-import uuid
-from pydantic import BaseModel, EmailStr, constr
+from pydantic import BaseModel, EmailStr, constr, conint
+from .enums import EventCategory
+from .constraints import PhoneNumber
 
 
 class UserBaseSchema(BaseModel):
@@ -13,23 +14,23 @@ class UserBaseSchema(BaseModel):
 
 
 class RegisterUserSchema(BaseModel):
-    phone_number: str  # +77477542002
+    phone_number: PhoneNumber  # +77477542002
     password: constr(min_length=8)
-    role: str = "user"
+    role: str = "USER"
 
 
 class RegisterUserResponseSchema(BaseModel):
     phone_number: str
-    id: uuid.UUID
+    id: int
     created_at: datetime
 
 
 class SendOTPSchema(BaseModel):
-    phone_number: str
+    phone_number: constr(regex="\+\d{11}")
 
 
 class VerifyOTPSchema(BaseModel):
-    phone_number: str
+    phone_number: PhoneNumber
     otp: str
 
 
@@ -39,6 +40,23 @@ class LoginUserSchema(BaseModel):
 
 
 class UserResponse(UserBaseSchema):
-    id: uuid.UUID
+    id: int
     created_at: datetime
     updated_at: datetime
+
+
+class ScheduleSchema(BaseModel):
+    start_date: conint(ge=0)
+    end_date: conint(ge=0)
+    description: constr(min_length=1)
+
+
+class CreateEventSchema(BaseModel):
+    categories: list[EventCategory]
+    schedules: list[ScheduleSchema]
+    start_date: conint(ge=0)
+    end_date: conint(ge=0)
+    address: constr(min_length=1)
+    description: constr(min_length=1)
+    link_to_registration: str | None = None
+    link_to_buy_ticket: str | None = None

@@ -8,6 +8,7 @@ from evento.database import get_db
 from evento.oauth2 import AuthJWT
 from evento.settings import settings
 from loguru import logger
+from ..enums import UserRole
 
 
 router = APIRouter()
@@ -23,9 +24,9 @@ REFRESH_TOKEN_EXPIRES_IN = settings.REFRESH_TOKEN_EXPIRES_IN
 async def create_user(
     payload: schemas.RegisterUserSchema, db: Session = Depends(get_db)
 ):
-    #  Hash the password
     payload.password = utils.hash_password(payload.password)
     new_user = models.User(**payload.dict())
+
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -67,8 +68,6 @@ async def send_otp(payload: schemas.SendOTPSchema, db: Session = Depends(get_db)
         models.User.phone_number == payload.phone_number
     ).update({models.User.otp: otp})
     db.commit()
-
-    logger.info(otp)
 
     from evento.services.otp import send_otp
 
